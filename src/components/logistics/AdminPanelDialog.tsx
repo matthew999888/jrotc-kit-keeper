@@ -1,13 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { UserPlus, Trash2 } from 'lucide-react';
-import { AllowedEmail } from '@/types/logistics';
+import { Shield } from 'lucide-react';
+
+interface UserWithRole {
+  id: string;
+  email: string;
+  name: string;
+  role: 'admin' | 'logistics' | 'cadet';
+  created_at: string;
+}
 
 interface AdminPanelDialogProps {
   open: boolean;
@@ -15,70 +20,60 @@ interface AdminPanelDialogProps {
 }
 
 export function AdminPanelDialog({ open, onOpenChange }: AdminPanelDialogProps) {
-  const [allowedEmails, setAllowedEmails] = useState<AllowedEmail[]>([]);
+  const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (open) {
-      fetchAllowedEmails();
+      fetchUsers();
     }
   }, [open]);
 
-  const fetchAllowedEmails = async () => {
+  const fetchUsers = async () => {
     try {
       const { data, error } = await supabase
-        .from('allowed_emails')
-        .select('*')
+        .from('profiles')
+        .select(`
+          id,
+          email,
+          name,
+          created_at,
+          user_roles (role)
+        `)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setAllowedEmails(data || []);
+
+      const usersWithRoles = data?.map(user => ({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        created_at: user.created_at,
+        role: (user.user_roles as any)?.[0]?.role || 'cadet'
+      })) || [];
+
+      setUsers(usersWithRoles);
     } catch (error: any) {
       toast.error('Error loading users: ' + error.message);
     }
   };
 
-  const handleAddEmail = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleRoleChange = async (userId: string, newRole: 'admin' | 'logistics' | 'cadet') => {
     setLoading(true);
-
-    const formData = new FormData(e.currentTarget);
-    const email = formData.get('email') as string;
-    const name = formData.get('name') as string;
-    const role = formData.get('role') as 'admin' | 'logistics' | 'cadet';
-
     try {
       const { error } = await supabase
-        .from('allowed_emails')
-        .insert({ email, name, role });
+        .from('user_roles')
+        .update({ role: newRole })
+        .eq('user_id', userId);
 
       if (error) throw error;
 
-      toast.success('User added successfully!');
-      e.currentTarget.reset();
-      fetchAllowedEmails();
+      toast.success('Role updated successfully!');
+      fetchUsers();
     } catch (error: any) {
-      toast.error('Error adding user: ' + error.message);
+      toast.error('Error updating role: ' + error.message);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleRemoveEmail = async (id: string, name: string) => {
-    if (!confirm(`Remove ${name} from authorized users?`)) return;
-
-    try {
-      const { error } = await supabase
-        .from('allowed_emails')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      toast.success('User removed successfully!');
-      fetchAllowedEmails();
-    } catch (error: any) {
-      toast.error('Error removing user: ' + error.message);
     }
   };
 
@@ -104,58 +99,20 @@ export function AdminPanelDialog({ open, onOpenChange }: AdminPanelDialogProps) 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Admin Panel - Manage Access</DialogTitle>
+          <DialogTitle>Admin Panel - Manage User Roles</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           <div className="bg-accent/50 border border-border rounded-lg p-4">
-            <h3 className="font-semibold text-foreground mb-3">Add New User</h3>
-            <form onSubmit={handleAddEmail} className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <div>
-                <Input
-                  name="email"
-                  type="email"
-                  placeholder="Email address"
-                  required
-                  className="h-10"
-                />
-              </div>
-              <div>
-                <Input
-                  name="name"
-                  type="text"
-                  placeholder="Full name"
-                  required
-                  className="h-10"
-                />
-              </div>
-              <div>
-                <Select name="role" required defaultValue="cadet">
-                  <SelectTrigger className="h-10">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cadet">Cadet</SelectItem>
-                    <SelectItem value="logistics">Logistics Officer</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button
-                type="submit"
-                disabled={loading}
-                className="h-10"
-              >
-                <UserPlus size={18} className="mr-2" />
-                Add
-              </Button>
-            </form>
+            <p className="text-sm text-muted-foreground">
+              New users automatically receive Cadet role when they sign up. Update roles below to grant additional permissions.
+            </p>
           </div>
 
           <div>
-            <h3 className="font-semibold text-foreground mb-3">Authorized Users</h3>
+            <h3 className="font-semibold text-foreground mb-3">All Users</h3>
             <div className="space-y-2">
-              {allowedEmails.map((user) => (
+              {users.map((user) => (
                 <div
                   key={user.id}
                   className="flex items-center justify-between p-4 bg-accent/30 rounded-lg border border-border"
@@ -167,14 +124,35 @@ export function AdminPanelDialog({ open, onOpenChange }: AdminPanelDialogProps) 
                       {getRoleLabel(user.role)}
                     </span>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRemoveEmail(user.id, user.name)}
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  <Select
+                    value={user.role}
+                    onValueChange={(value) => handleRoleChange(user.id, value as 'admin' | 'logistics' | 'cadet')}
+                    disabled={loading}
                   >
-                    <Trash2 size={18} />
-                  </Button>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cadet">
+                        <div className="flex items-center gap-2">
+                          <Shield size={14} />
+                          <span>Cadet</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="logistics">
+                        <div className="flex items-center gap-2">
+                          <Shield size={14} />
+                          <span>Logistics Officer</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="admin">
+                        <div className="flex items-center gap-2">
+                          <Shield size={14} />
+                          <span>Admin</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               ))}
             </div>
