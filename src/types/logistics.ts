@@ -1,15 +1,17 @@
 export interface Item {
-  id: number;
+  id: string;
   category: string;
   name: string;
   quantity: number;
-  inUse: number;
-  assignedTo: string | null;
-  condition: 'new' | 'good' | 'needs-repair' | 'unserviceable';
+  in_use: number;
+  assigned_to: string | null;
+  condition: string;
   location: string;
   notes: string;
-  lastUpdated: string;
-  dueDate?: string;
+  due_date?: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by?: string | null;
 }
 
 export interface Category {
@@ -33,14 +35,20 @@ export interface UserRole {
 }
 
 export interface ActivityLog {
-  timestamp: string;
-  user: string;
+  id: string;
+  user_id: string | null;
+  user_name: string;
   action: string;
-  item: string;
+  item_name: string;
+  item_id: string | null;
+  created_at: string;
 }
 
 export interface AllowedEmail {
+  id: string;
   email: string;
   role: 'admin' | 'logistics' | 'cadet';
   name: string;
+  created_at: string;
+  created_by?: string | null;
 }

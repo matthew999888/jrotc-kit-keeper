@@ -1,23 +1,27 @@
 import { useState } from 'react';
 import { LogOut, Menu, X, Settings } from 'lucide-react';
-import { User } from '@/types/logistics';
-import { userRoles } from '@/data/userRoles';
 import { Button } from '@/components/ui/button';
 
 interface NavigationProps {
-  currentUser: User;
   currentPage: string;
-  onNavigate: (page: string) => void;
+  setCurrentPage: (page: 'dashboard' | 'inventory') => void;
+  setSelectedCategory: (category: string | null) => void;
+  userName: string;
+  userRole: string;
   onLogout: () => void;
-  onAdminPanel: () => void;
+  canManageUsers: boolean;
+  onAdminClick: () => void;
 }
 
 export const Navigation = ({ 
-  currentUser, 
-  currentPage, 
-  onNavigate, 
-  onLogout, 
-  onAdminPanel 
+  currentPage,
+  setCurrentPage,
+  setSelectedCategory,
+  userName,
+  userRole,
+  onLogout,
+  canManageUsers,
+  onAdminClick
 }: NavigationProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -28,59 +32,45 @@ export const Navigation = ({
           <div className="flex items-center gap-4">
             <span className="text-3xl">🦅</span>
             <div>
-              <h1 className="text-xl font-bold">AFJROTC Logistics</h1>
-              <p className="text-xs text-primary-foreground/80">Management System</p>
+              <h1 className="text-xl font-bold">AFJROTC</h1>
+              <p className="text-xs text-primary-foreground/80">Logistics Management</p>
             </div>
           </div>
           
           <div className="hidden md:flex items-center gap-6">
             <Button
-              onClick={() => onNavigate('dashboard')}
               variant={currentPage === 'dashboard' ? 'secondary' : 'ghost'}
-              className={currentPage === 'dashboard' ? '' : 'text-primary-foreground hover:bg-primary/80'}
+              onClick={() => { setCurrentPage('dashboard'); setSelectedCategory(null); }}
             >
               Dashboard
             </Button>
             <Button
-              onClick={() => onNavigate('inventory')}
               variant={currentPage === 'inventory' ? 'secondary' : 'ghost'}
-              className={currentPage === 'inventory' ? '' : 'text-primary-foreground hover:bg-primary/80'}
+              onClick={() => { setCurrentPage('inventory'); setSelectedCategory(null); }}
             >
               Inventory
             </Button>
-            {userRoles[currentUser?.role]?.canManageUsers && (
-              <Button
-                onClick={onAdminPanel}
-                variant="ghost"
-                size="icon"
-                className="text-primary-foreground hover:bg-primary/80"
-                title="Admin Panel"
-              >
+            {canManageUsers && (
+              <Button variant="ghost" size="icon" onClick={onAdminClick}>
                 <Settings size={20} />
               </Button>
             )}
-            <div className="flex items-center gap-3 border-l border-primary-foreground/30 pl-6">
+            <div className="flex items-center gap-3 border-l border-primary-foreground/20 pl-6">
               <div className="text-right">
-                <p className="text-sm font-medium">{currentUser.name}</p>
-                <p className="text-xs text-primary-foreground/80">{userRoles[currentUser.role].name}</p>
+                <p className="text-sm font-medium">{userName}</p>
+                <p className="text-xs text-primary-foreground/70">{userRole}</p>
               </div>
-              <Button
-                onClick={onLogout}
-                variant="ghost"
-                size="icon"
-                className="text-primary-foreground hover:bg-primary/80"
-                title="Logout"
-              >
+              <Button variant="ghost" size="icon" onClick={onLogout}>
                 <LogOut size={20} />
               </Button>
             </div>
           </div>
 
           <Button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             variant="ghost"
             size="icon"
-            className="md:hidden text-primary-foreground"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden"
           >
             {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </Button>
@@ -89,37 +79,29 @@ export const Navigation = ({
         {mobileMenuOpen && (
           <div className="md:hidden pb-4 space-y-2">
             <Button
-              onClick={() => { onNavigate('dashboard'); setMobileMenuOpen(false); }}
               variant={currentPage === 'dashboard' ? 'secondary' : 'ghost'}
-              className="w-full justify-start"
+              onClick={() => { setCurrentPage('dashboard'); setSelectedCategory(null); setMobileMenuOpen(false); }}
+              className="w-full"
             >
               Dashboard
             </Button>
             <Button
-              onClick={() => { onNavigate('inventory'); setMobileMenuOpen(false); }}
               variant={currentPage === 'inventory' ? 'secondary' : 'ghost'}
-              className="w-full justify-start"
+              onClick={() => { setCurrentPage('inventory'); setSelectedCategory(null); setMobileMenuOpen(false); }}
+              className="w-full"
             >
               Inventory
             </Button>
-            {userRoles[currentUser?.role]?.canManageUsers && (
-              <Button
-                onClick={() => { onAdminPanel(); setMobileMenuOpen(false); }}
-                variant="ghost"
-                className="w-full justify-start"
-              >
+            {canManageUsers && (
+              <Button variant="ghost" onClick={() => { onAdminClick(); setMobileMenuOpen(false); }} className="w-full">
                 <Settings size={18} className="mr-2" />
                 Admin Panel
               </Button>
             )}
-            <div className="border-t border-primary-foreground/30 pt-2 mt-2 px-4 space-y-2">
-              <p className="text-sm font-medium">{currentUser.name}</p>
-              <p className="text-xs text-primary-foreground/80">{userRoles[currentUser.role].name}</p>
-              <Button
-                onClick={() => { onLogout(); setMobileMenuOpen(false); }}
-                variant="ghost"
-                className="w-full justify-start mt-2"
-              >
+            <div className="border-t border-primary-foreground/20 pt-2 mt-2">
+              <p className="px-4 py-1 text-sm font-medium">{userName}</p>
+              <p className="px-4 text-xs text-primary-foreground/70">{userRole}</p>
+              <Button variant="ghost" onClick={() => { onLogout(); setMobileMenuOpen(false); }} className="w-full mt-2">
                 <LogOut size={18} className="mr-2" />
                 Logout
               </Button>

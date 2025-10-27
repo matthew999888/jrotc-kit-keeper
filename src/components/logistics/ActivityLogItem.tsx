@@ -10,12 +10,12 @@ export const ActivityLogItem = ({ log }: ActivityLogItemProps) => {
       <div className="flex items-center gap-3">
         <div className="w-2 h-2 bg-primary rounded-full"></div>
         <div>
-          <p className="text-sm font-medium text-foreground">{log.action}: {log.item}</p>
-          <p className="text-xs text-muted-foreground">{log.user}</p>
+          <p className="text-sm font-medium text-foreground">{log.action}: {log.item_name}</p>
+          <p className="text-xs text-muted-foreground">{log.user_name}</p>
         </div>
       </div>
       <p className="text-xs text-muted-foreground">
-        {new Date(log.timestamp).toLocaleDateString()}
+        {new Date(log.created_at).toLocaleDateString()}
       </p>
     </div>
   );
