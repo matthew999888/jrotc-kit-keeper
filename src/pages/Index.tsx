@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Package, Users, AlertCircle, ArrowLeft, Plus, Search } from 'lucide-react';
+import { Package, Users, AlertCircle, ArrowLeft, Plus, Search, Trash2 } from 'lucide-react';
 import { Item, User, ActivityLog, AllowedEmail } from '@/types/logistics';
 import { categories } from '@/data/categories';
 import { userRoles } from '@/data/userRoles';
@@ -125,6 +125,19 @@ const Index = () => {
     }, ...activityLog].slice(0, 50);
     setActivityLog(newLog);
     saveData(items, newLog);
+  };
+
+  const handleDeleteItem = (item: Item) => {
+    if (confirm(`Are you sure you want to delete "${item.name}"? This action cannot be undone.`)) {
+      const newItems = items.filter(i => i.id !== item.id);
+      setItems(newItems);
+      saveData(newItems, activityLog);
+      addActivity('Deleted item', item.name);
+      toast({
+        title: "Item deleted",
+        description: `${item.name} has been removed from inventory`,
+      });
+    }
   };
 
   const filteredItems = items.filter(item => {
@@ -283,6 +296,9 @@ const Index = () => {
                       <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Quantity</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">In Use</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Location</th>
+                      {userRoles[currentUser?.role]?.canDelete && (
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Actions</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -300,6 +316,18 @@ const Index = () => {
                         <td className="px-4 py-3 text-sm text-foreground font-medium">{item.quantity}</td>
                         <td className="px-4 py-3 text-sm text-foreground">{item.inUse}</td>
                         <td className="px-4 py-3 text-sm text-muted-foreground">{item.location}</td>
+                        {userRoles[currentUser?.role]?.canDelete && (
+                          <td className="px-4 py-3">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteItem(item)}
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 size={16} />
+                            </Button>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
